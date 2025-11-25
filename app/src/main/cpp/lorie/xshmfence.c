@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include <sys/stat.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 struct xshmfence {
     uint8_t is_futex;
@@ -41,9 +42,21 @@ void xshmfence_reset(struct xshmfence *f) {
 }
 
 int xshmfence_alloc_shm(void) {
-    // xcb_dri3_fd_from_fence is not used in mesa so I assume it will not be used in applications.
-    // also we can not find out which implementation is used in X client (futex, glibc pthread, bionic pthread) so we will not implement it at all.
-    return xshmfence_futex_alloc_shm();
+    int fd = -1;
+#ifdef __NR_memfd_create
+    fd = syscall(__NR_memfd_create, "xshmfence", MFD_CLOEXEC | MFD_ALLOW_SEALING);
+#endif
+
+    if (fd < 0) {
+        return -1;
+    }
+
+    if (ftruncate(fd, sizeof(uint32_t)) < 0) {
+        close(fd);
+        return -1;
+    }
+
+    return fd;
 }
 
 struct xshmfence * xshmfence_map_shm(int fd) {

@@ -15,6 +15,7 @@ int xshmfence_futex_query(struct xshmfence *f);
 void xshmfence_futex_reset(struct xshmfence *f);
 struct xshmfence * xshmfence_futex_map_shm(int fd);
 void xshmfence_futex_unmap_shm(struct xshmfence *f);
+int xshmfence_futex_alloc_shm(void);
 
 int xshmfence_pthread_trigger(struct xshmfence *f);
 int xshmfence_pthread_await(struct xshmfence *f);
@@ -42,7 +43,7 @@ void xshmfence_reset(struct xshmfence *f) {
 int xshmfence_alloc_shm(void) {
     // xcb_dri3_fd_from_fence is not used in mesa so I assume it will not be used in applications.
     // also we can not find out which implementation is used in X client (futex, glibc pthread, bionic pthread) so we will not implement it at all.
-    return -1;
+    return xshmfence_futex_alloc_shm();
 }
 
 struct xshmfence * xshmfence_map_shm(int fd) {
